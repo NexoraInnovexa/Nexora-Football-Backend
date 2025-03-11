@@ -15,7 +15,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://football_db_45ja_user:FcS
 
 # ✅ Convert `postgresql://` to `postgres://` for compatibility
 if DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgres://")
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # ✅ Configure database
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
