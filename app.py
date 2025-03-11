@@ -8,15 +8,22 @@ import os
 app = Flask(__name__)
 
 # ✅ Enable CORS for frontend (Netlify or Vercel)
-CORS(app, origins=["https://nexora-soccer-predictor.netlify.app/", "https://your-frontend-domain.com"])
+CORS(app, origins=["https://nexora-soccer-predictor.netlify.app/", "https://nexora-soccer-predictor.netlify.app/"])
 
-# 🔹 Configure database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Amarachi1994@localhost/football_db'
+# ✅ Load database URL from environment variable (for Render)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja")
+
+# ✅ Convert `postgresql://` to `postgres://` for compatibility
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgres://")
+
+# ✅ Configure database
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# ✅ Flutterwave API Key
-FLW_SECRET_KEY = "your_flutterwave_secret_key"
+# ✅ Load Flutterwave API Key securely
+FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "FLWSECK_TEST-84eb728f6cb31ceea795195d9e2e52cc-X")
 
 # 🔹 Load trained AI model safely
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
@@ -46,14 +53,33 @@ class Prediction(db.Model):
 with app.app_context():
     db.create_all()
 
-# 🔹 Fetch Real-Time Match Data
+# 🔹 Fetch Real-Time Match Data (Fixed Version)
 def get_live_match_data(home_team, away_team):
-    API_KEY = "your_football_api_key"
-    url = f"https://api.sportsdata.io/v4/soccer/scores/json/Teams?key={API_KEY}"
-    
+    API_KEY = os.getenv("FOOTBALL_API_KEY", "your_football_api_key")
+    url = f"https://api.sportsdata.io/v4/soccer/scores/json/MatchesByDate/2024-MAR-10?key={API_KEY}"
+
     response = requests.get(url)
+    
     if response.status_code == 200:
-        return response.json()
+        matches = response.json()  # Ensure we get a list of matches
+
+        # ✅ Look for the match that contains home_team & away_team
+        for match in matches:
+            if (
+                match.get("HomeTeam") and match.get("AwayTeam") and
+                home_team.lower() in match["HomeTeam"].lower() and
+                away_team.lower() in match["AwayTeam"].lower()
+            ):
+                return {
+                    "home_team": match["HomeTeam"],
+                    "away_team": match["AwayTeam"],
+                    "home_goals": match["HomeTeamScore"] if match.get("HomeTeamScore") is not None else 0,
+                    "away_goals": match["AwayTeamScore"] if match.get("AwayTeamScore") is not None else 0,
+                }
+
+        print(f"⚠️ No match found for {home_team} vs {away_team}.")
+        return None
+
     else:
         print(f"⚠️ Failed to fetch live data: {response.text}")
         return None
@@ -78,23 +104,18 @@ def predict():
     if not match_data:
         return jsonify({"error": "Live data not available"}), 400
 
-    # Example: Extract useful stats for AI input
-    features = [
-        match_data.get('home_goals', 0),  # Use 0 if data is missing
-        match_data.get('away_goals', 0)
-    ]
-
     # ✅ AI Model Predicts Score
+    features = [match_data["home_goals"], match_data["away_goals"]]
     predicted_score = model.predict([features])[0]
 
     # ✅ Store Prediction in Database
-    new_prediction = Prediction(user_email, home_team, away_team, predicted_score)
+    new_prediction = Prediction(user_email, match_data["home_team"], match_data["away_team"], predicted_score)
     db.session.add(new_prediction)
     db.session.commit()
 
     return jsonify({
-        "home_team": home_team,
-        "away_team": away_team,
+        "home_team": match_data["home_team"],
+        "away_team": match_data["away_team"],
         "predicted_score": predicted_score
     })
 
@@ -116,7 +137,7 @@ def create_payment():
             "payment_options": "card",
             "customer": {
                 "email": data["email"],
-                "name": data["name"]
+                "name": data.get("name", "Football Fan")
             },
             "customizations": {
                 "title": "Football Prediction Payment",
