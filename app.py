@@ -133,7 +133,7 @@ def create_payment():
             "tx_ref": f"trx_{os.urandom(5).hex()}",
             "amount": 4,  # Charge $4
             "currency": "USD",
-            "redirect_url": "https://your-frontend-domain.com/payment-success",
+            "redirect_url": "https://nexora-soccer-predictor.netlify.app/payment-success",
             "payment_options": "card",
             "customer": {
                 "email": data["email"],
