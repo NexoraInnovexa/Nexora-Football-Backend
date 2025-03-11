@@ -23,7 +23,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ✅ Load Flutterwave API Key securely
-FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "FLWSECK_TEST-84eb728f6cb31ceea795195d9e2e52cc-X")
+FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "FLWSECK_TEST")
 
 # 🔹 Load trained AI model safely
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
