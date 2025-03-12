@@ -6,7 +6,7 @@ import joblib
 import os
 
 # ✅ Initialize Flask Blueprint
-main = Blueprint("main", __name__, static_folder="../frontend/build", template_folder="../frontend/build")
+main = Blueprint("main", __name__, static_folder="../frontend/public", template_folder="../frontend/public")
 
 # ✅ Load the AI model
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
@@ -19,13 +19,10 @@ else:
     model = None
 
 # ✅ Serve React Frontend (Fix 404 Error)
-@main.route("/", defaults={"path": ""})
-@main.route("/<path:path>")
-def serve_react(path):
-    """Serves the React frontend from the build folder."""
-    if path != "" and os.path.exists(os.path.join(main.static_folder, path)):
-        return send_from_directory(main.static_folder, path)
-    return send_from_directory(main.template_folder, "index.html")
+@main.route("/")
+@main.route("/index")
+def index():
+    return send_from_directory("../frontend/public", "index.html")
 
 # ✅ API to Get Live Football Data
 @main.route("/live_matches", methods=["GET"])
