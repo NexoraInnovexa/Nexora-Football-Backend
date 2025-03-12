@@ -4,11 +4,11 @@ from flask_cors import CORS  # ✅ Import CORS
 import requests
 import joblib
 import os
-from routes import main  # ✅ Ensure correct import for your project
+from routes import main  # ✅ Import Blueprint correctly
 
 app = Flask(__name__)
 
-# ✅ Register Blueprint after app is created
+# ✅ Register Blueprint (No need to redefine /predict)
 app.register_blueprint(main, url_prefix="/")
 
 # ✅ Enable CORS for frontend (Netlify or Vercel)
@@ -56,72 +56,6 @@ class Prediction(db.Model):
 # 🔹 Ensure DB Tables Exist Before Running Flask
 with app.app_context():
     db.create_all()
-
-# 🔹 Fetch Real-Time Match Data (Fixed Version)
-def get_live_match_data(home_team, away_team):
-    API_KEY = os.getenv("FOOTBALL_API_KEY", "your_football_api_key")
-    url = f"https://api.sportsdata.io/v4/soccer/scores/json/MatchesByDate/2024-MAR-10?key={API_KEY}"
-
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        matches = response.json()  # Ensure we get a list of matches
-
-        # ✅ Look for the match that contains home_team & away_team
-        for match in matches:
-            if (
-                match.get("HomeTeam") and match.get("AwayTeam") and
-                home_team.lower() in match["HomeTeam"].lower() and
-                away_team.lower() in match["AwayTeam"].lower()
-            ):
-                return {
-                    "home_team": match["HomeTeam"],
-                    "away_team": match["AwayTeam"],
-                    "home_goals": match["HomeTeamScore"] if match.get("HomeTeamScore") is not None else 0,
-                    "away_goals": match["AwayTeamScore"] if match.get("AwayTeamScore") is not None else 0,
-                }
-
-        print(f"⚠️ No match found for {home_team} vs {away_team}.")
-        return None
-
-    else:
-        print(f"⚠️ Failed to fetch live data: {response.text}")
-        return None
-
-# 🔹 AI Prediction API
-@app.route('/predict', methods=['POST'])
-def predict():
-    if model is None:
-        return jsonify({"error": "AI model not available. Please train it first!"}), 500
-
-    data = request.json
-    user_email = data.get('email')
-    home_team = data.get('home_team')
-    away_team = data.get('away_team')
-
-    if not home_team or not away_team:
-        return jsonify({"error": "Missing home or away team"}), 400
-
-    # Fetch real-time match data
-    match_data = get_live_match_data(home_team, away_team)
-
-    if not match_data:
-        return jsonify({"error": "Live data not available"}), 400
-
-    # ✅ AI Model Predicts Score
-    features = [match_data["home_goals"], match_data["away_goals"]]
-    predicted_score = model.predict([features])[0]
-
-    # ✅ Store Prediction in Database
-    new_prediction = Prediction(user_email, match_data["home_team"], match_data["away_team"], predicted_score)
-    db.session.add(new_prediction)
-    db.session.commit()
-
-    return jsonify({
-        "home_team": match_data["home_team"],
-        "away_team": match_data["away_team"],
-        "predicted_score": predicted_score
-    })
 
 # 🔹 Payment Route (Flutterwave)
 @app.route('/payment', methods=['POST'])

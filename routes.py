@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_from_directory, current_app, Response
+from flask import Blueprint, request, jsonify, send_from_directory
 from extensions import db
 from model import Prediction  # ✅ Ensure models.py exists
 from fetch_data import fetch_live_matches  # ✅ Import live data fetcher
@@ -18,7 +18,7 @@ else:
     print("⚠️ Model file not found! Train the model first.")
     model = None
 
-# ✅ Serve React Frontend (Fix 404 Error)
+# ✅ Serve React Frontend
 @main.route("/", methods=["GET"])
 def serve_home():
     """Serve the React frontend index.html"""
@@ -32,7 +32,7 @@ def serve_static_files(path):
         return send_from_directory(main.static_folder, path)
     return send_from_directory(main.static_folder, "index.html")   
 
-# ✅ API to Get Live Football Data
+# ✅ Fetch Live Matches API
 @main.route("/live_matches", methods=["GET"])
 def get_live_matches():
     """Fetch real-time football matches"""
@@ -44,46 +44,74 @@ def get_live_matches():
         return jsonify({"error": "Failed to fetch live match data"}), 500
 
 
-# ✅ AI-Powered Football Prediction API
-# @main.route('/predict', methods=['POST'])
-# def predict():
-#     """Predict football match outcome"""
-#     if model is None:
-#         return jsonify({"error": "AI model not available. Please train it first!"}), 500
+# 🔹 Extract match stats from live data
+def get_live_match_data(home_team, away_team):
+    """Find specific match stats from live data"""
+    df = fetch_live_matches()
 
-#     data = request.json
-#     home_team = data.get("home_team")
-#     away_team = data.get("away_team")
-    
-#     if not home_team or not away_team:
-#         return jsonify({"error": "Missing team names"}), 400
+    if df is None:
+        return None
 
-#     # Dummy match features (replace with real stats)
-#     match_features = [[1, 1]]  # Ensure it's a 2D list format
+    # Find the match in the DataFrame
+    match = df[(df["HomeTeam"].str.lower() == home_team.lower()) & 
+               (df["AwayTeam"].str.lower() == away_team.lower())]
 
-#     try:
-#         predicted_winner = int(model.predict(match_features)[0])  # ✅ Fix potential error
-#     except Exception as e:
-#         return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
+    if match.empty:
+        return None
 
-#     prediction_result = "Draw"
-#     if predicted_winner == 1:
-#         prediction_result = f"{home_team} Wins"
-#     elif predicted_winner == 0:
-#         prediction_result = f"{away_team} Wins"
+    return {
+        "home_goals": int(match.iloc[0]["HomeTeamScore"]) if "HomeTeamScore" in match.columns else 0,
+        "away_goals": int(match.iloc[0]["AwayTeamScore"]) if "AwayTeamScore" in match.columns else 0
+    }
 
-#     # ✅ Save prediction to the database
-#     prediction = Prediction(
-#         user_email="test@example.com",
-#         home_team=home_team,
-#         away_team=away_team,
-#         predicted_score=prediction_result
-#     )
-#     db.session.add(prediction)
-#     db.session.commit()
 
-#     return jsonify({
-#         "home_team": home_team,
-#         "away_team": away_team,
-#         "predicted_winner": prediction_result
-#     })
+# ✅ AI-Powered Prediction API
+@main.route('/predict', methods=['POST'])
+def predict():
+    """Predict football match outcome"""
+    if model is None:
+        return jsonify({"error": "AI model not available. Please train it first!"}), 500
+
+    data = request.json
+    home_team = data.get("home_team")
+    away_team = data.get("away_team")
+
+    if not home_team or not away_team:
+        return jsonify({"error": "Missing team names"}), 400
+
+    # ✅ Fetch live match stats
+    match_stats = get_live_match_data(home_team, away_team)
+
+    if not match_stats:
+        return jsonify({"error": "No live data found for this match"}), 400
+
+    # ✅ Prepare model input features
+    match_features = [[match_stats["home_goals"], match_stats["away_goals"]]]  # Modify based on your model
+
+    try:
+        predicted_winner = int(model.predict(match_features)[0])  # Ensure model output is converted correctly
+    except Exception as e:
+        return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
+
+    # ✅ Interpret prediction results
+    prediction_result = "Draw"
+    if predicted_winner == 1:
+        prediction_result = f"{home_team} Wins"
+    elif predicted_winner == 0:
+        prediction_result = f"{away_team} Wins"
+
+    # ✅ Save prediction to the database
+    prediction = Prediction(
+        user_email=data.get("email", "anonymous@example.com"),  # Ensure email is provided
+        home_team=home_team,
+        away_team=away_team,
+        predicted_score=prediction_result
+    )
+    db.session.add(prediction)
+    db.session.commit()
+
+    return jsonify({
+        "home_team": home_team,
+        "away_team": away_team,
+        "predicted_winner": prediction_result
+    })
