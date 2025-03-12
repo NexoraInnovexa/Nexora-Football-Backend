@@ -45,45 +45,45 @@ def get_live_matches():
 
 
 # ✅ AI-Powered Football Prediction API
-@main.route('/predict', methods=['POST'])
-def predict():
-    """Predict football match outcome"""
-    if model is None:
-        return jsonify({"error": "AI model not available. Please train it first!"}), 500
+# @main.route('/predict', methods=['POST'])
+# def predict():
+#     """Predict football match outcome"""
+#     if model is None:
+#         return jsonify({"error": "AI model not available. Please train it first!"}), 500
 
-    data = request.json
-    home_team = data.get("home_team")
-    away_team = data.get("away_team")
+#     data = request.json
+#     home_team = data.get("home_team")
+#     away_team = data.get("away_team")
     
-    if not home_team or not away_team:
-        return jsonify({"error": "Missing team names"}), 400
+#     if not home_team or not away_team:
+#         return jsonify({"error": "Missing team names"}), 400
 
-    # Dummy match features (replace with real stats)
-    match_features = [[1, 1]]  # Ensure it's a 2D list format
+#     # Dummy match features (replace with real stats)
+#     match_features = [[1, 1]]  # Ensure it's a 2D list format
 
-    try:
-        predicted_winner = int(model.predict(match_features)[0])  # ✅ Fix potential error
-    except Exception as e:
-        return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
+#     try:
+#         predicted_winner = int(model.predict(match_features)[0])  # ✅ Fix potential error
+#     except Exception as e:
+#         return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
 
-    prediction_result = "Draw"
-    if predicted_winner == 1:
-        prediction_result = f"{home_team} Wins"
-    elif predicted_winner == 0:
-        prediction_result = f"{away_team} Wins"
+#     prediction_result = "Draw"
+#     if predicted_winner == 1:
+#         prediction_result = f"{home_team} Wins"
+#     elif predicted_winner == 0:
+#         prediction_result = f"{away_team} Wins"
 
-    # ✅ Save prediction to the database
-    prediction = Prediction(
-        user_email="test@example.com",
-        home_team=home_team,
-        away_team=away_team,
-        predicted_score=prediction_result
-    )
-    db.session.add(prediction)
-    db.session.commit()
+#     # ✅ Save prediction to the database
+#     prediction = Prediction(
+#         user_email="test@example.com",
+#         home_team=home_team,
+#         away_team=away_team,
+#         predicted_score=prediction_result
+#     )
+#     db.session.add(prediction)
+#     db.session.commit()
 
-    return jsonify({
-        "home_team": home_team,
-        "away_team": away_team,
-        "predicted_winner": prediction_result
-    })
+#     return jsonify({
+#         "home_team": home_team,
+#         "away_team": away_team,
+#         "predicted_winner": prediction_result
+#     })
