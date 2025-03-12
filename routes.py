@@ -19,17 +19,17 @@ else:
     model = None
 
 # ✅ Serve React Frontend (Fix 404 Error)
-@main.route("/", defaults={"path": ""})
-@main.route("/<path:path>")
-def serve_frontend(path):
-    """Serve frontend files correctly from public folder"""
-    static_folder = os.path.abspath(main.static_folder)
+@main.route("/", methods=["GET"])
+def serve_home():
+    """Serve the frontend index.html"""
+    return send_from_directory(app.static_folder, "index.html")
 
-    if path and os.path.exists(os.path.join(static_folder, path)):
-        return send_from_directory(static_folder, path)
-    
-    # ✅ Always serve index.html for React routes
-    return send_from_directory(static_folder, "index.html")
+@main.route("/<path:path>", methods=["GET"])
+def serve_static_files(path):
+    """Serve static files like CSS, JS, and images"""
+    if os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, "index.html")  # Default to index.html for unknown paths
 
 
 # ✅ API to Get Live Football Data
