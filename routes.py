@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify, send_from_directory, current_app, Response
 from extensions import db
 from model import Prediction  # ✅ Ensure models.py exists
 from fetch_data import fetch_live_matches  # ✅ Import live data fetcher
@@ -22,15 +22,22 @@ else:
 @main.route("/", methods=["GET"])
 def serve_home():
     """Serve the frontend index.html"""
-    return send_from_directory(app.static_folder, "index.html")
+    return send_from_directory(main.static_folder, "index.html")
+
+@main.route("/favicon.ico", methods=["GET"])
+def serve_favicon():
+    """Prevent favicon errors by returning an empty response"""
+    return Response(status=204)  # Returns 204 No Content instead of error
 
 @main.route("/<path:path>", methods=["GET"])
 def serve_static_files(path):
     """Serve static files like CSS, JS, and images"""
-    if os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, "index.html")  # Default to index.html for unknown paths
+    file_path = os.path.join(main.static_folder, path)
 
+    if os.path.exists(file_path):
+        return send_from_directory(main.static_folder, path)
+    
+    return send_from_directory(main.static_folder, "index.html")  
 
 # ✅ API to Get Live Football Data
 @main.route("/live_matches", methods=["GET"])
