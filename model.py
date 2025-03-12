@@ -1,4 +1,4 @@
-from backend import db
+from extensions import db
 
 class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
