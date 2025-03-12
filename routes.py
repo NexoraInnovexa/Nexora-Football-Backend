@@ -1,11 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from backend import db
-from backend.model import Prediction  # ✅ Fix import (ensure models.py exists)
+from backend.model import Prediction  # ✅ Ensure models.py exists
 from backend.fetch_data import fetch_live_matches  # ✅ Import live data fetcher
 import joblib
 import os
 
-main = Blueprint("main", __name__)
+# ✅ Initialize Flask Blueprint
+main = Blueprint("main", __name__, static_folder="../frontend/build", template_folder="../frontend/build")
 
 # ✅ Load the AI model
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
@@ -17,14 +18,19 @@ else:
     print("⚠️ Model file not found! Train the model first.")
     model = None
 
-@main.route("/")
-def home():
-    return jsonify({"message": "Welcome to AI Football Predictor!"})
+# ✅ Serve React Frontend (Fix 404 Error)
+@main.route("/", defaults={"path": ""})
+@main.route("/<path:path>")
+def serve_react(path):
+    """Serves the React frontend from the build folder."""
+    if path != "" and os.path.exists(os.path.join(main.static_folder, path)):
+        return send_from_directory(main.static_folder, path)
+    return send_from_directory(main.template_folder, "index.html")
 
-# ✅ New API to Get Live Football Data
+# ✅ API to Get Live Football Data
 @main.route("/live_matches", methods=["GET"])
 def get_live_matches():
-    """API endpoint to fetch real-time football matches"""
+    """Fetch real-time football matches"""
     df = fetch_live_matches()
     
     if df is not None:
@@ -33,11 +39,9 @@ def get_live_matches():
         return jsonify({"error": "Failed to fetch live match data"}), 500
 
 # ✅ AI-Powered Football Prediction API
-@main.route('/predict', methods=['GET', 'POST'])
+@main.route('/predict', methods=['POST'])
 def predict():
-    if request.method == 'GET':
-        return jsonify({"message": "Use POST request with home_team and away_team"}), 200
-
+    """Predict football match outcome"""
     if model is None:
         return jsonify({"error": "AI model not available. Please train it first!"}), 500
 
@@ -48,8 +52,8 @@ def predict():
     if not home_team or not away_team:
         return jsonify({"error": "Missing team names"}), 400
 
-    # Default features (update with real match data)
-    match_features = [[1, 1]]  # Replace with real stats
+    # Dummy match features (replace with real stats)
+    match_features = [[1, 1]]  # Make sure it's in a 2D list format
 
     predicted_winner = model.predict(match_features)[0]  # Use AI model to predict
 
