@@ -4,13 +4,10 @@ from flask_migrate import Migrate
 import os
 import dotenv
 import logging
+from .extensions import db  # Import db from your extensions module
 
 # 🔹 Load environment variables from .env file
 dotenv.load_dotenv()
-
-# 🔹 Initialize Database
-db = SQLAlchemy()
-migrate = Migrate()  # Keep migrate separate to initialize properly
 
 # 🔹 Set up logging for better debugging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,16 +17,19 @@ def create_app():
     app = Flask(__name__)
 
     # 🔹 Database Configuration
-    # Fetch the database URL from the environment variable or use the provided default
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja')
+    # Fetch the database URL from the environment variable or use the default
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+        'DATABASE_URL',
+        'postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja'
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # 🔹 Initialize Extensions
     db.init_app(app)
-    migrate.init_app(app, db)  # Now properly initialized
+    Migrate(app, db)  # Initialize Flask-Migrate with app and db
 
-    # 🔹 Import and Register Routes
-    from routes import main
+    # 🔹 Import and Register Routes (use relative import)
+    from .routes import main
     app.register_blueprint(main)
 
     return app
