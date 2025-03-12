@@ -4,20 +4,21 @@ from flask_cors import CORS  # ✅ Import CORS
 import requests
 import joblib
 import os
-from routes import main  # Ensure this import path is correct for your project
-
+from routes import main  # ✅ Ensure correct import for your project
 
 app = Flask(__name__)
+
+# ✅ Register Blueprint after app is created
 app.register_blueprint(main)
 
 # ✅ Enable CORS for frontend (Netlify or Vercel)
-CORS(app, origins=["https://nexora-soccer-predictor.netlify.app/", "https://nexora-soccer-predictor.netlify.app/"])
+CORS(app, resources={r"/*": {"origins": ["https://nexora-soccer-predictor.netlify.app"]}})
 
 # ✅ Load database URL from environment variable (for Render)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja")
 
-# ✅ Convert `postgresql://` to `postgres://` for compatibility
-if DATABASE_URL.startswith("postgresql://"):
+# ✅ Convert `postgresql://` to `postgres://` for compatibility (ONLY for SQLAlchemy)
+if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # ✅ Configure database
