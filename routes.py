@@ -6,7 +6,7 @@ import joblib
 import os
 
 # ✅ Initialize Flask Blueprint
-main = Blueprint("main", __name__, static_folder="../frontend/public", template_folder="../frontend/public")
+main = Blueprint("main", __name__, static_folder="build", static_url_path="/")
 
 # ✅ Load the AI model
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
@@ -21,23 +21,16 @@ else:
 # ✅ Serve React Frontend (Fix 404 Error)
 @main.route("/", methods=["GET"])
 def serve_home():
-    """Serve the frontend index.html"""
+    """Serve the React frontend index.html"""
     return send_from_directory(main.static_folder, "index.html")
-
-@main.route("/favicon.ico", methods=["GET"])
-def serve_favicon():
-    """Prevent favicon errors by returning an empty response"""
-    return Response(status=204)  # Returns 204 No Content instead of error
 
 @main.route("/<path:path>", methods=["GET"])
 def serve_static_files(path):
     """Serve static files like CSS, JS, and images"""
     file_path = os.path.join(main.static_folder, path)
-
     if os.path.exists(file_path):
         return send_from_directory(main.static_folder, path)
-    
-    return send_from_directory(main.static_folder, "index.html")  
+    return send_from_directory(main.static_folder, "index.html")   
 
 # ✅ API to Get Live Football Data
 @main.route("/live_matches", methods=["GET"])
