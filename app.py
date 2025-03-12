@@ -4,8 +4,11 @@ from flask_cors import CORS  # ✅ Import CORS
 import requests
 import joblib
 import os
+from routes import main  # Ensure this import path is correct for your project
+
 
 app = Flask(__name__)
+app.register_blueprint(main)
 
 # ✅ Enable CORS for frontend (Netlify or Vercel)
 CORS(app, origins=["https://nexora-soccer-predictor.netlify.app/", "https://nexora-soccer-predictor.netlify.app/"])
@@ -158,4 +161,4 @@ def create_payment():
 
 # 🔹 Run Flask App
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
