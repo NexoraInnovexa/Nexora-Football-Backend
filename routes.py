@@ -1,9 +1,15 @@
 from flask import Blueprint, request, jsonify, send_from_directory
-from backend.extensions import db
-from backend.model import Prediction  # ✅ Ensure models.py exists
-from backend.fetch_data import fetch_live_matches  # ✅ Import live data fetcher
-import joblib
 import os
+import joblib
+
+try:
+    from backend.extensions import db
+    from backend.model import Prediction  # ✅ Ensure models.py exists
+    from backend.fetch_data import fetch_live_matches  # ✅ Import live data fetcher
+except ModuleNotFoundError:
+    from extensions import db
+    from model import Prediction  # ✅ Ensure models.py exists
+    from fetch_data import fetch_live_matches  # ✅ Import live data fetcher
 
 # ✅ Initialize Flask Blueprint
 main = Blueprint("main", __name__, static_folder="build", static_url_path="/")

@@ -4,7 +4,12 @@ from flask_cors import CORS  # ✅ Import CORS
 import requests
 import joblib
 import os
-from backend.routes import main  # ✅ Import Blueprint correctly
+
+# ✅ Handle dynamic import for local vs. Render
+try:
+    from backend.routes import main  # ✅ Works locally
+except ModuleNotFoundError:
+    from routes import main  # ✅ Works on Render
 
 app = Flask(__name__)
 

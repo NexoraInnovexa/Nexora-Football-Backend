@@ -4,8 +4,12 @@ from flask_migrate import Migrate
 import os
 import dotenv
 import logging
-from .extensions import db  # Import db from your extensions module
-
+try:
+    from backend.extensions import db
+    
+except ModuleNotFoundError:
+    from extensions import db
+    
 # 🔹 Load environment variables from .env file
 dotenv.load_dotenv()
 

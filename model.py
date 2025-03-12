@@ -1,5 +1,8 @@
-from backend.extensions import db
-
+try:
+    from backend.extensions import db
+except ModuleNotFoundError:
+    from extensions import db
+    
 class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_email = db.Column(db.String(120), nullable=False)
