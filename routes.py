@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, send_from_directory
-from extensions import db
-from model import Prediction  # ✅ Ensure models.py exists
-from fetch_data import fetch_live_matches  # ✅ Import live data fetcher
+from backend.extensions import db
+from backend.model import Prediction  # ✅ Ensure models.py exists
+from backend.fetch_data import fetch_live_matches  # ✅ Import live data fetcher
 import joblib
 import os
 

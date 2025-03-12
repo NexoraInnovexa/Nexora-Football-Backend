@@ -29,7 +29,7 @@ def create_app():
     Migrate(app, db)  # Initialize Flask-Migrate with app and db
 
     # 🔹 Import and Register Routes (use relative import)
-    from .routes import main
+    from routes import main
     app.register_blueprint(main)
 
     return app

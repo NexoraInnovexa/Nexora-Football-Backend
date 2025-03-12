@@ -4,7 +4,7 @@ from flask_cors import CORS  # ✅ Import CORS
 import requests
 import joblib
 import os
-from routes import main  # ✅ Import Blueprint correctly
+from backend.routes import main  # ✅ Import Blueprint correctly
 
 app = Flask(__name__)
 
