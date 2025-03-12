@@ -33,8 +33,11 @@ def get_live_matches():
         return jsonify({"error": "Failed to fetch live match data"}), 500
 
 # ✅ AI-Powered Football Prediction API
-@main.route("/predict", methods=["POST"])
+@main.route('/predict', methods=['GET', 'POST'])
 def predict():
+    if request.method == 'GET':
+        return jsonify({"message": "Use POST request with home_team and away_team"}), 200
+
     if model is None:
         return jsonify({"error": "AI model not available. Please train it first!"}), 500
 
