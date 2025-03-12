@@ -9,10 +9,10 @@ from routes import main  # ✅ Ensure correct import for your project
 app = Flask(__name__)
 
 # ✅ Register Blueprint after app is created
-app.register_blueprint(main)
+app.register_blueprint(main, url_prefix="/")
 
 # ✅ Enable CORS for frontend (Netlify or Vercel)
-CORS(app, resources={r"/*": {"origins": ["https://nexora-soccer-predictor.netlify.app"]}})
+CORS(app, origins=["https://nexora-soccer-predictor.netlify.app"])
 
 # ✅ Load database URL from environment variable (for Render)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja")

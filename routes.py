@@ -19,10 +19,18 @@ else:
     model = None
 
 # ✅ Serve React Frontend (Fix 404 Error)
-@main.route("/")
-@main.route("/index")
-def index():
-    return send_from_directory("../frontend/public", "index.html")
+@main.route("/", defaults={"path": ""})
+@main.route("/<path:path>")
+def serve_frontend(path):
+    """Serve frontend files correctly from public folder"""
+    static_folder = os.path.abspath(main.static_folder)
+
+    if path and os.path.exists(os.path.join(static_folder, path)):
+        return send_from_directory(static_folder, path)
+    
+    # ✅ Always serve index.html for React routes
+    return send_from_directory(static_folder, "index.html")
+
 
 # ✅ API to Get Live Football Data
 @main.route("/live_matches", methods=["GET"])
@@ -34,6 +42,7 @@ def get_live_matches():
         return jsonify(df.to_dict(orient="records"))
     else:
         return jsonify({"error": "Failed to fetch live match data"}), 500
+
 
 # ✅ AI-Powered Football Prediction API
 @main.route('/predict', methods=['POST'])
@@ -50,9 +59,12 @@ def predict():
         return jsonify({"error": "Missing team names"}), 400
 
     # Dummy match features (replace with real stats)
-    match_features = [[1, 1]]  # Make sure it's in a 2D list format
+    match_features = [[1, 1]]  # Ensure it's a 2D list format
 
-    predicted_winner = model.predict(match_features)[0]  # Use AI model to predict
+    try:
+        predicted_winner = int(model.predict(match_features)[0])  # ✅ Fix potential error
+    except Exception as e:
+        return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
 
     prediction_result = "Draw"
     if predicted_winner == 1:
