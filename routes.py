@@ -49,19 +49,28 @@ def get_live_match_data(home_team, away_team):
     """Find specific match stats from live data"""
     df = fetch_live_matches()
 
-    if df is None:
+    if df is None or df.empty:
+        return None
+
+    # Normalize column names to lowercase
+    df.columns = df.columns.str.lower()
+    home_team = home_team.lower()
+    away_team = away_team.lower()
+
+    required_columns = {"hometeam", "awayteam", "hometeamscore", "awayteamscore"}
+    if not required_columns.issubset(df.columns):
         return None
 
     # Find the match in the DataFrame
-    match = df[(df["HomeTeam"].str.lower() == home_team.lower()) & 
-               (df["AwayTeam"].str.lower() == away_team.lower())]
+    match = df[(df["hometeam"].str.lower() == home_team) & 
+               (df["awayteam"].str.lower() == away_team)]
 
     if match.empty:
         return None
 
     return {
-        "home_goals": int(match.iloc[0]["HomeTeamScore"]) if "HomeTeamScore" in match.columns else 0,
-        "away_goals": int(match.iloc[0]["AwayTeamScore"]) if "AwayTeamScore" in match.columns else 0
+        "home_goals": int(match.iloc[0]["hometeamscore"]) if "hometeamscore" in match.columns else 0,
+        "away_goals": int(match.iloc[0]["awayteamscore"]) if "awayteamscore" in match.columns else 0
     }
 
 
