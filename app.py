@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS  # ✅ Import CORS
+from flask_cors import CORS  
 import requests
 import joblib
 import os
@@ -16,13 +16,16 @@ app = Flask(__name__)
 # ✅ Register Blueprint (No need to redefine /predict)
 app.register_blueprint(main, url_prefix="/")
 
-# ✅ Enable CORS for frontend (Netlify or Vercel)
-CORS(app, origins=["https://nexora-soccer-predictor.netlify.app"])
+# ✅ Enable CORS for frontend
+CORS(app, resources={r"/*": {"origins": "https://nexora-soccer-predictor.netlify.app"}})
 
-# ✅ Load database URL from environment variable (for Render)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja")
+# ✅ Load database URL from environment variable
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql://football_db_45ja_user:FcSz0jnwqUujnD1o1ZmWBaMEMP22RuiO@dpg-cv88815ds78s73e900hg-a/football_db_45ja"
+)
 
-# ✅ Convert `postgresql://` to `postgres://` for compatibility (ONLY for SQLAlchemy)
+# ✅ Convert `postgres://` to `postgresql://` for compatibility (ONLY for SQLAlchemy)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -34,7 +37,7 @@ db = SQLAlchemy(app)
 # ✅ Load Flutterwave API Key securely
 FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "FLWSECK_TEST")
 
-# 🔹 Load trained AI model safely
+# ✅ Load trained AI model safely
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
 
 if os.path.exists(model_path):
@@ -91,7 +94,7 @@ def create_payment():
         response = requests.post("https://api.flutterwave.com/v3/payments", json=payment_data, headers=headers)
         response_data = response.json()
 
-        if response_data["status"] == "success":
+        if response_data.get("status") == "success":
             return jsonify({"message": "Payment initiated!", "payment_link": response_data["data"]["link"]})
         else:
             return jsonify({"error": "Payment failed. Try again."}), 400
