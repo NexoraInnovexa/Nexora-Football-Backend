@@ -49,7 +49,6 @@ def get_live_matches():
     else:
         return jsonify({"error": "Failed to fetch live match data"}), 500
 
-
 # 🔹 Extract match stats from live data
 def get_live_match_data(home_team, away_team):
     """Find specific match stats from live data"""
@@ -79,7 +78,6 @@ def get_live_match_data(home_team, away_team):
         "away_goals": int(match.iloc[0]["awayteamscore"]) if "awayteamscore" in match.columns else 0
     }
 
-
 # ✅ AI-Powered Prediction API
 @main.route('/predict', methods=['POST'])
 def predict():
@@ -90,6 +88,7 @@ def predict():
     data = request.json
     home_team = data.get("home_team")
     away_team = data.get("away_team")
+    email = data.get("email", "anonymous@example.com")  # Default if email not provided
 
     if not home_team or not away_team:
         return jsonify({"error": "Missing team names"}), 400
@@ -115,15 +114,21 @@ def predict():
     elif predicted_winner == 0:
         prediction_result = f"{away_team} Wins"
 
-    # ✅ Save prediction to the database
-    prediction = Prediction(
-        user_email=data.get("email", "anonymous@example.com"),  # Ensure email is provided
-        home_team=home_team,
-        away_team=away_team,
-        predicted_score=prediction_result
-    )
-    db.session.add(prediction)
-    db.session.commit()
+    # ✅ Save prediction to the database safely
+    try:
+        prediction = Prediction(
+            user_email=email,
+            home_team=home_team,
+            away_team=away_team,
+            predicted_score=prediction_result
+        )
+        db.session.add(prediction)
+        db.session.commit()
+        print("✅ Prediction saved to the database")  # Debugging log
+    except Exception as db_error:
+        db.session.rollback()
+        print(f"🚨 Database error: {db_error}")
+        return jsonify({"error": "Failed to save prediction"}), 500
 
     return jsonify({
         "home_team": home_team,
