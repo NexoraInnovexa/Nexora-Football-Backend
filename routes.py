@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 import os
 import joblib
+import traceback  # ✅ Import traceback for debugging
 
 try:
     from backend.extensions import db
@@ -8,8 +9,8 @@ try:
     from backend.fetch_data import fetch_live_matches  # ✅ Import live data fetcher
 except ModuleNotFoundError:
     from extensions import db
-    from model import Prediction  # ✅ Ensure models.py exists
-    from fetch_data import fetch_live_matches  # ✅ Import live data fetcher
+    from model import Prediction
+    from fetch_data import fetch_live_matches
 
 # ✅ Initialize Flask Blueprint
 main = Blueprint("main", __name__, static_folder="build", static_url_path="/")
@@ -82,56 +83,59 @@ def get_live_match_data(home_team, away_team):
 @main.route('/predict', methods=['POST'])
 def predict():
     """Predict football match outcome"""
-    if model is None:
-        return jsonify({"error": "AI model not available. Please train it first!"}), 500
-
-    data = request.json
-    home_team = data.get("home_team")
-    away_team = data.get("away_team")
-    email = data.get("email", "anonymous@example.com")  # Default if email not provided
-
-    if not home_team or not away_team:
-        return jsonify({"error": "Missing team names"}), 400
-
-    # ✅ Fetch live match stats
-    match_stats = get_live_match_data(home_team, away_team)
-
-    if not match_stats:
-        return jsonify({"error": "No live data found for this match"}), 400
-
-    # ✅ Prepare model input features
-    match_features = [[match_stats["home_goals"], match_stats["away_goals"]]]  # Modify based on your model
-
     try:
+        if model is None:
+            return jsonify({"error": "AI model not available. Please train it first!"}), 500
+
+        data = request.json
+        home_team = data.get("home_team")
+        away_team = data.get("away_team")
+        email = data.get("email", "anonymous@example.com")  # Default if email not provided
+
+        if not home_team or not away_team:
+            return jsonify({"error": "Missing team names"}), 400
+
+        # ✅ Fetch live match stats
+        match_stats = get_live_match_data(home_team, away_team)
+
+        if not match_stats:
+            return jsonify({"error": "No live data found for this match"}), 400
+
+        # ✅ Prepare model input features
+        match_features = [[match_stats["home_goals"], match_stats["away_goals"]]]  # Modify based on your model
+
         predicted_winner = int(model.predict(match_features)[0])  # Ensure model output is converted correctly
+
+        # ✅ Interpret prediction results
+        prediction_result = "Draw"
+        if predicted_winner == 1:
+            prediction_result = f"{home_team} Wins"
+        elif predicted_winner == 0:
+            prediction_result = f"{away_team} Wins"
+
+        # ✅ Save prediction to the database safely
+        try:
+            prediction = Prediction(
+                user_email=email,
+                home_team=home_team,
+                away_team=away_team,
+                predicted_score=prediction_result
+            )
+            db.session.add(prediction)
+            db.session.commit()
+            print("✅ Prediction saved to the database")  # Debugging log
+        except Exception as db_error:
+            db.session.rollback()
+            print(f"🚨 Database error: {db_error}")
+            return jsonify({"error": "Failed to save prediction"}), 500
+
+        return jsonify({
+            "home_team": home_team,
+            "away_team": away_team,
+            "predicted_winner": prediction_result
+        })
+
     except Exception as e:
-        return jsonify({"error": f"Model prediction failed: {str(e)}"}), 500
-
-    # ✅ Interpret prediction results
-    prediction_result = "Draw"
-    if predicted_winner == 1:
-        prediction_result = f"{home_team} Wins"
-    elif predicted_winner == 0:
-        prediction_result = f"{away_team} Wins"
-
-    # ✅ Save prediction to the database safely
-    try:
-        prediction = Prediction(
-            user_email=email,
-            home_team=home_team,
-            away_team=away_team,
-            predicted_score=prediction_result
-        )
-        db.session.add(prediction)
-        db.session.commit()
-        print("✅ Prediction saved to the database")  # Debugging log
-    except Exception as db_error:
-        db.session.rollback()
-        print(f"🚨 Database error: {db_error}")
-        return jsonify({"error": "Failed to save prediction"}), 500
-
-    return jsonify({
-        "home_team": home_team,
-        "away_team": away_team,
-        "predicted_winner": prediction_result
-    })
+        print("🔥 ERROR:", str(e))
+        print(traceback.format_exc())  # ✅ Print full error traceback
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
