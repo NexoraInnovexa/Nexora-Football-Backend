@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, send_from_directory
 import os
 import joblib
 import random
+
 import traceback  # ✅ Import traceback for debugging
 from datetime import datetime, timedelta
 
@@ -16,6 +17,8 @@ except ModuleNotFoundError:
 
 # ✅ Initialize Flask Blueprint
 main = Blueprint("main", __name__, static_folder="build", static_url_path="/")
+
+
 
 # ✅ Load the AI model
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
@@ -159,7 +162,6 @@ def delete_prediction():
 # ✅ AI-Powered Prediction API
 @main.route('/predict', methods=['POST'])
 def predict():
-    """Predict football match outcome if user has a valid access code."""
     try:
         if model is None:
             return jsonify({"error": "AI model not available. Please train it first!"}), 500
@@ -169,14 +171,16 @@ def predict():
         access_code = data.get("access_code")
         home_team = data.get("home_team")
         away_team = data.get("away_team")
-
+        
         if not home_team or not away_team or not email or not access_code:
             return jsonify({"error": "Missing required fields"}), 400
         
-        if access_code != ADMIN_ACCESS_CODE:
-            subscription = Subscription.query.filter_by(email=email, access_code=access_code).first()
-            if not subscription or (subscription.expires_at and subscription.expires_at < datetime.utcnow()):
-                return jsonify({"error": "Invalid or expired access code"}), 403
+        # For one-time predictions (instant plan), we use a placeholder code
+        if access_code != "instant":
+            if access_code != ADMIN_ACCESS_CODE:
+                subscription = Subscription.query.filter_by(email=email, access_code=access_code).first()
+                if not subscription or (subscription.expires_at and subscription.expires_at < datetime.utcnow()):
+                    return jsonify({"error": "Invalid or expired access code"}), 403
         
         match_stats = get_live_match_data(home_team, away_team)
         if not match_stats:
@@ -184,7 +188,7 @@ def predict():
         
         match_features = [[match_stats["home_goals"], match_stats["away_goals"]]]
         predicted_winner = int(model.predict(match_features)[0])
-
+        
         prediction_result = "Draw"
         if predicted_winner == 1:
             prediction_result = f"{home_team} Wins"
@@ -194,7 +198,7 @@ def predict():
         prediction = Prediction(user_email=email, home_team=home_team, away_team=away_team, predicted_score=prediction_result)
         db.session.add(prediction)
         db.session.commit()
-
+        
         return jsonify({
             "home_team": home_team,
             "away_team": away_team,
